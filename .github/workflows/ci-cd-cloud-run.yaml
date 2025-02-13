@@ -1,0 +1,38 @@
+name: CI/CD to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v3
+
+    - name: Autenticação no Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+
+    - name: Configurar gcloud SDK
+      run: |
+        gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
+        gcloud auth configure-docker us-central1-docker.pkg.dev
+
+    - name: Construir e publicar Docker image
+      run: |
+        docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/angular-repo/angular-app .
+        docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/angular-repo/angular-app
+
+    - name: Deploy no Cloud Run
+      run: |
+        gcloud run deploy angular-app \
+          --image us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/angular-repo/angular-app \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --set-env-vars BACKEND_HOST=${{ secrets.BACKEND_HOST }}
