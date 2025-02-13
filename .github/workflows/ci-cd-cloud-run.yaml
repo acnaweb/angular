@@ -1,9 +1,15 @@
 name: CI/CD to Cloud Run
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Escolha o ambiente de deploy'
+        required: true
+        type: choice
+        options:
+          - 'DEV'
+          - 'STG'
 
 jobs:
   build-and-deploy:
